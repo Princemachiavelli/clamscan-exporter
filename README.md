@@ -19,6 +19,8 @@ clamscan_files{code="Symbolic link",path="",virus=""} 251
 
 ```
 
+Only the FOUND code will have details about path and virus. The rest are summarized over total count. 
+
 ## usage from clamscan
 
 ```
