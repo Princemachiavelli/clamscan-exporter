@@ -20,10 +20,14 @@ import (
 
 var scanStatusRegexp = regexp.MustCompile(`: (.*)$`)
 
-var metrics = promauto.NewGaugeVec(prometheus.GaugeOpts{
+var filesMetrics = promauto.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "clamscan_files",
 	Help: "The number of scanned files",
 }, []string{"code", "virus", "path"})
+
+var durationMetrics = promauto.NewSummary(prometheus.SummaryOpts{
+	Name: "clamscan_duration_seconds",
+	Help: "duration of clamscan"})
 
 func main() {
 	var tcpPort, httpPort string
@@ -72,6 +76,8 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 	defer wg.Done()
 	defer c.Close()
 
+	startTime := time.Now()
+
 	result := make(map[string]int)
 	found := make(map[string]string)
 
@@ -96,13 +102,15 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 		result[code]++
 	}
 
+	durationMetrics.Observe(time.Since(startTime).Seconds())
+
 	if scanner.Err() != nil {
 		logrus.Error(scanner.Err())
 	}
 	for code, count := range result {
-		metrics.WithLabelValues(code, "", "").Set(float64(count))
+		filesMetrics.WithLabelValues(code, "", "").Set(float64(count))
 	}
 	for virus, path := range found {
-		metrics.WithLabelValues("FOUND", virus, path).Set(1)
+		filesMetrics.WithLabelValues("FOUND", virus, path).Set(1)
 	}
 }
