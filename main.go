@@ -31,8 +31,8 @@ var durationMetrics = promauto.NewSummary(prometheus.SummaryOpts{
 
 func main() {
 	var tcpPort, httpPort string
-	flag.StringVar(&tcpPort, "tcp-port", "9000", "port to listen tcp connections on")
-	flag.StringVar(&httpPort, "http-port", "8080", "port to listen tcp connections on")
+	flag.StringVar(&tcpPort, "tcp-port", "9000", "port to listen to tcp connections on from clamscan netcat pipe")
+	flag.StringVar(&httpPort, "http-port", "9967", "port to listen to http connections from prometheus for /metrics")
 	flag.Parse()
 	ln, err := net.Listen("tcp", ":"+tcpPort)
 	if err != nil {
