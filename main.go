@@ -95,7 +95,17 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 			found[code[0:len(code)-6]] = path
 			continue
 		}
+
+		if isErrorLine(scanner.Text()) {
+			// only log errors since it can be of high cardinality if many files are scanned.
+			logrus.Error(scanner.Text())
+			continue
+		}
+
 		if _, ok := result[code]; !ok {
+			if len(code) > 20 {
+				logrus.Warnf("found very long code. This is the whole line: %s", scanner.Text())
+			}
 			result[code] = 1
 			continue
 		}
@@ -113,4 +123,24 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 	for virus, path := range found {
 		filesMetrics.WithLabelValues("FOUND", virus, path).Set(1)
 	}
+}
+
+func isErrorLine(line string) bool {
+	// Add more errors here if needed. Found some of them here: https://github.com/Cisco-Talos/clamav/blob/main/clamscan/manager.c
+	if strings.HasPrefix(line, "Can't open file") {
+		return true
+	}
+	if strings.HasSuffix(line, "Can't open directory.") {
+		return true
+	}
+	if strings.HasSuffix(line, " Can't access file") {
+		return true
+	}
+	if strings.HasSuffix(line, " Not supported file type") {
+		return true
+	}
+	if strings.HasSuffix(line, " ERROR") {
+		return true
+	}
+	return false
 }
