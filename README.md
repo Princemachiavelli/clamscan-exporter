@@ -27,7 +27,7 @@ Only the FOUND code will have details about path and virus. The rest are summari
 $ clamscan-exporter  --help
 Usage of clamscan-exporter:
   -http-port string
-    	port to listen tcp connections on (default "8080")
+    	port to listen tcp connections on (default "9967")
   -tcp-port string
     	port to listen tcp connections on (default "9000")
 ```

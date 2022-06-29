@@ -2,10 +2,14 @@ package main
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"errors"
 	"flag"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,7 +27,7 @@ var scanStatusRegexp = regexp.MustCompile(`: (.*)$`)
 var filesMetrics = promauto.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "clamscan_files",
 	Help: "The number of scanned files",
-}, []string{"code", "virus", "path"})
+}, []string{"code", "virus", "path", "sha256sum"})
 
 var durationMetrics = promauto.NewSummary(prometheus.SummaryOpts{
 	Name: "clamscan_duration_seconds",
@@ -118,11 +122,32 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 		logrus.Error(scanner.Err())
 	}
 	for code, count := range result {
-		filesMetrics.WithLabelValues(code, "", "").Set(float64(count))
+		filesMetrics.WithLabelValues(code, "", "", "").Set(float64(count))
 	}
 	for virus, path := range found {
-		filesMetrics.WithLabelValues("FOUND", virus, path).Set(1)
+		sha256sum, err := generateSha256sum(path)
+		if err != nil {
+			logrus.Error(err)
+		}
+
+		filesMetrics.WithLabelValues("FOUND", virus, path, sha256sum).Set(1)
 	}
+}
+
+func generateSha256sum(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func isErrorLine(line string) bool {
