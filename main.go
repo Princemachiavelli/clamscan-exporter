@@ -167,5 +167,8 @@ func isErrorLine(line string) bool {
 	if strings.HasSuffix(line, " ERROR") {
 		return true
 	}
+	if strings.HasSuffix(line, " No such file or directory") {
+		return true
+	}
 	return false
 }
