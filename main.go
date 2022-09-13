@@ -115,6 +115,8 @@ func handleConnection(wg *sync.WaitGroup, c net.Conn) {
 		}
 		result[code]++
 	}
+	//reset since virus can be removed and should not be listed anymore
+	filesMetrics.Reset()
 
 	durationMetrics.Observe(time.Since(startTime).Seconds())
 
