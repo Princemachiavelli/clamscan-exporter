@@ -1,6 +1,6 @@
 { config, lib, pkgs, prometheus-clamscan-exporter, ... }: with lib;
 let
-  cfg = config.services.prometheus-clamscan-exporter;
+  cfg = config.services.prometheus.exporters.clamscan;
   exportPkg = prometheus-clamscan-exporter;
 in
 {
@@ -48,10 +48,11 @@ in
     }
     {
       systemd.services."clamscan-schedule" = {
+        path = [ pkgs.netcat ];
         serviceConfig = {
           # Limit to local mount points only, use clamdscan or just clamscan?
           ExecStart = ''
-            ${pkgs.clamav}/bin/clamdscan -r --stdout --no-summary --fdpass  / | ${pkgs.netcat}/bin/nc 127.0.0.0 9000 
+            ${pkgs.clamav}/bin/clamdscan -r --stdout --no-summary --fdpass  / | nc 127.0.0.0 9000 
           '';
           # Since we use --fdpass then this should work.
           DynamicUser = true;
